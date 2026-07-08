@@ -1,0 +1,10 @@
+auth:
+  handler: <your_bot_handler>
+  api_id: <your_api_id>
+  api_hash: <your_api_hash>
+  bot_token: <your_bot_token>
+
+config:
+  cache_path: ./cache/
+  skin_path: ./skins/default
+  pregenerated_path: ./pregenerated/default.yaml
