@@ -2,7 +2,7 @@ import os
 import random
 import tempfile
 import uuid
-from asyncio import to_thread
+from asyncio import to_thread, sleep
 from pathlib import Path
 
 import emoji
@@ -49,7 +49,7 @@ async def userpic(user):
                 return path
         case User():
             if user.photo:
-                fresh_user = cast(User, await app.get_users(user.id))
+                fresh_user = cast(User, await app.get_users(user.id)) # Thank you Telegram for feeding my bot with invalid ID
                 path = cache_path / f"{fresh_user.id}.png"
                 await app.download_media(message = fresh_user.photo.big_file_id, file_name = str(path), block = True) # type: ignore
                 return path
@@ -135,6 +135,7 @@ async def cacheLoader(_, message: Message):
             counter += 1
             fresh_user = cast(User, await app.get_users(user_id))
             await userpic(fresh_user)
+            await sleep(0.5) # Rate Limiting
     await message.reply(f"Updated userpic cache for {counter} users!")
 
 @app.on_message(filters.command(["wise"]))

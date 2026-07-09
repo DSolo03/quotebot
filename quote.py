@@ -113,7 +113,7 @@ class Skin:
             try:
                 with Image.open(quote.userpic) as userpic:
                     avatar = self.round_userpic(userpic.convert("RGBA"))
-            except UnidentifiedImageError:
+            except UnidentifiedImageError: # Last stand
                 with Image.open(self.userpic_default) as userpic:
                     avatar = self.round_userpic(userpic.convert("RGBA"))
             
