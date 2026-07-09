@@ -9,6 +9,7 @@ import emoji
 import quote
 import sqlite_utils
 import yaml
+from typing import cast
 from pyrogram import Client, filters
 from pyrogram.types import Message, User
 from quote import Quote
@@ -33,7 +34,8 @@ app = Client(
     bot_token = auth["bot_token"]
 )
 
-DB = sqlite_utils.Database("quotes.db")["quotes"]
+DB_raw = sqlite_utils.Database("quotes.db")
+DB = DB_raw["quotes"]
 skin = quote.Skin(config["skin_path"])
 
 async def userpic(user):
@@ -44,8 +46,9 @@ async def userpic(user):
                 return path
         case User():
             if user.photo:
-                path = cache_path / f"{user.id}.png"
-                await app.download_media(user.photo.big_file_id, file_name = path)
+                fresh_user = cast(User, await app.get_users(user.id))
+                path = cache_path / f"{fresh_user.id}.png"
+                await app.download_media(message = fresh_user.photo.big_file_id, file_name = str(path), block = True) # type: ignore
                 return path
     return None
 
@@ -113,6 +116,20 @@ async def quoteHandler(_, message:Message):
 
             result.save(filename)
             await app.send_photo(chat_id = message.chat.id, reply_to_message_id = message.id, photo = filename)
+
+@app.on_message(filters.command(["cache"]))
+async def cacheLoader(_, message: Message):
+    unique_users = [
+        row["userID"] 
+        for row in DB_raw.query("SELECT DISTINCT userID FROM quotes WHERE userID IS NOT NULL")
+    ]
+    counter = 0
+    for user_id in unique_users:
+        if user_id:
+            counter += 1
+            fresh_user = cast(User, await app.get_users(user_id))
+            await userpic(fresh_user)
+    await message.reply(f"Updated userpic cache for {counter} users!")
 
 @app.on_message(filters.command(["wise"]))
 async def wiseHandler(_, message: Message):

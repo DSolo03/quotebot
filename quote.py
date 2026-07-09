@@ -3,7 +3,7 @@ from pathlib import Path
 
 import yaml
 from fontTools.ttLib import TTFont
-from PIL import Image, ImageDraw, ImageFont
+from PIL import Image, ImageDraw, ImageFont, UnidentifiedImageError
 from text import bound_text
 
 @dataclass
@@ -110,8 +110,12 @@ class Skin:
                 self.userpic_location[1] - self.userpic_border_radius
             )
 
-            with Image.open(quote.userpic) as userpic:
-                avatar = self.round_userpic(userpic.convert("RGBA"))
+            try:
+                with Image.open(quote.userpic) as userpic:
+                    avatar = self.round_userpic(userpic.convert("RGBA"))
+            except UnidentifiedImageError:
+                with Image.open(self.userpic_default) as userpic:
+                    avatar = self.round_userpic(userpic.convert("RGBA"))
             
             border = self.smooth_circle(
                 self.userpic_radius + self.userpic_border_radius, 

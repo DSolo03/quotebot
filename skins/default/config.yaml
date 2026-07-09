@@ -1,0 +1,19 @@
+background:
+  filename: "background.png"
+  left_top: [240, 200]
+  right_bottom: [1560, 515]
+
+userpic:
+  filename: "user.png"
+  location: [1510, 615]
+  radius: 111
+  border_color: [0, 0, 0, 255]
+  border_radius: 5
+
+username:
+  align: "left"
+  color: "white"
+
+font:
+  filename: "comic.ttf"
+  color: "black"

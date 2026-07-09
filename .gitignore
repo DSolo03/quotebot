@@ -228,7 +228,7 @@ pregenerated/*
 skins/*
 !skins/default/
 
-config.yaml
+/config.yaml
 quotes.db
 
 *.session
