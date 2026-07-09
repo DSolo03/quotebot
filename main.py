@@ -8,9 +8,11 @@ from pathlib import Path
 import emoji
 import quote
 import sqlite_utils
+from sqlite_utils.db import Table
 import yaml
 from typing import cast
-from pyrogram import Client, filters
+from pyrogram.client import Client
+from pyrogram import filters
 from pyrogram.types import Message, User
 from quote import Quote
 from text import character_filter
@@ -34,8 +36,9 @@ app = Client(
     bot_token = auth["bot_token"]
 )
 
-DB_raw = sqlite_utils.Database("quotes.db")
-DB = DB_raw["quotes"]
+db = sqlite_utils.Database("quotes.db")
+DB = cast(Table, db.table("quotes"))
+
 skin = quote.Skin(config["skin_path"])
 
 async def userpic(user):
@@ -66,12 +69,14 @@ pregenerated_quotes = load_pregenerated(config["pregenerated_path"])
 @app.on_message(filters.command(["quote"]))
 async def quoteHandler(_, message:Message):
     quote = Quote()
-    if message.reply_to_message and message.from_user:
+    if not (message.chat and message.from_user):
+        return
+    if message.reply_to_message and message.reply_to_message.from_user and message.reply_to_message.chat:
         filename = os.path.join(tempfile.gettempdir(), '{}.png'.format(uuid.uuid4().hex))
         if message.reply_to_message.forward_from:
             message.reply_to_message.from_user = message.reply_to_message.forward_from
 
-        text = message.reply_to_message.text or message.reply_to_message.caption
+        text = message.reply_to_message.text or message.reply_to_message.caption or ""
         text = text.encode("utf-16", "surrogatepass").decode("utf-16", "ignore")
         text = emoji.demojize(text)
         text = character_filter(skin.font_obj, text)
@@ -81,7 +86,8 @@ async def quoteHandler(_, message:Message):
             quote.username = character_filter(skin.font_obj, message.reply_to_message.forward_sender_name)
             user_id = 0
         else:
-            quote.username = character_filter(skin.font_obj, message.reply_to_message.from_user.first_name) or message.reply_to_message.from_user.username
+            quote.username = message.reply_to_message.from_user.first_name or "User"
+            quote.username = character_filter(skin.font_obj, quote.username) or message.reply_to_message.from_user.username or "User"
             quote.userpic = await userpic(message.reply_to_message.from_user)
             user_id = message.reply_to_message.from_user.id
 
@@ -93,35 +99,35 @@ async def quoteHandler(_, message:Message):
             "userID":user_id, 
             "userName": quote.username, 
             "text": quote.text
-        }, pk=("chatID", "messageID"))
+        }, pk = ("chatID", "messageID")) # type: ignore
 
         result.save(filename)
-        await app.send_photo(chat_id = message.chat.id, reply_to_message_id = message.reply_to_message.id, photo = filename)
+        await app.send_photo(chat_id = cast(int, message.chat.id), reply_to_message_id = message.reply_to_message.id, photo = filename)
 
-    elif message.from_user:
+    else:
         variants = list(DB.rows_where("chatID = ?", [message.chat.id]))
         if variants:
             choice = random.choice(variants)
             filename = os.path.join(tempfile.gettempdir(), '{}.png'.format(uuid.uuid4().hex))
 
-            text = choice.get("text")
+            text = choice.get("text") or ""
             text = text.encode("utf-16", "surrogatepass").decode("utf-16", "ignore")
             text = emoji.demojize(text)
             quote.text = text
 
-            quote.username = choice.get("userName")
+            quote.username = choice.get("userName") or "User"
             quote.userpic = await userpic(choice.get("userID"))
 
             result = await to_thread(skin.render_quote, quote)
 
             result.save(filename)
-            await app.send_photo(chat_id = message.chat.id, reply_to_message_id = message.id, photo = filename)
+            await app.send_photo(chat_id = cast(int, message.chat.id), reply_to_message_id = message.id, photo = filename)
 
 @app.on_message(filters.command(["cache"]))
 async def cacheLoader(_, message: Message):
     unique_users = [
         row["userID"] 
-        for row in DB_raw.query("SELECT DISTINCT userID FROM quotes WHERE userID IS NOT NULL")
+        for row in db.query("SELECT DISTINCT userID FROM quotes WHERE userID IS NOT NULL")
     ]
     counter = 0
     for user_id in unique_users:
@@ -134,7 +140,7 @@ async def cacheLoader(_, message: Message):
 @app.on_message(filters.command(["wise"]))
 async def wiseHandler(_, message: Message):
     quote = Quote()
-    if message.from_user:
+    if message.from_user and message.chat:
         filename = os.path.join(tempfile.gettempdir(), '{}.png'.format(uuid.uuid4().hex))
         
         text = f"..{random.choice(pregenerated_quotes)}"
@@ -145,6 +151,6 @@ async def wiseHandler(_, message: Message):
         result = await to_thread(skin.render_quote, quote, hide_userpic = True)
 
         result.save(filename)
-        await app.send_photo(chat_id = message.chat.id, reply_to_message_id = message.id, photo = filename)
+        await app.send_photo(chat_id = cast(int, message.chat.id), reply_to_message_id = message.id, photo = filename)
 
 app.run()

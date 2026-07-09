@@ -20,7 +20,7 @@ def character_filter(font: TTFont, text: str) -> str:
     return "".join(out)
 
 def get_bounding_font(
-        draw: ImageDraw.Draw, 
+        draw: ImageDraw.ImageDraw, 
         text: str, 
         font_path: Path, 
         bounding_box: tuple[int, int, int, int]
@@ -49,7 +49,7 @@ def get_bounding_font(
 
     return ImageFont.truetype(font_path, size)
 
-def wrap_text(draw: ImageDraw.Draw, text: str, font: FreeTypeFont, max_width: int) -> str:
+def wrap_text(draw: ImageDraw.ImageDraw, text: str, font: FreeTypeFont, max_width: int) -> str:
     lines = []
     for original_line in text.split("\n"):
         words = original_line.split(" ")

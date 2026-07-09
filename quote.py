@@ -17,7 +17,7 @@ class BoundingBox:
 class Quote:
     text: str = ""
     username: str = ""
-    userpic: Path = None
+    userpic: Path | None = None
 
 class Skin:
     background: Path
@@ -72,16 +72,16 @@ class Skin:
 
         self.font_color = config["font"]["color"]
 
-    def round_userpic(self, userpic: Image) -> Image:
-        avatar = userpic.resize((2 * self.userpic_radius, 2 * self.userpic_radius), Image.LANCZOS)
+    def round_userpic(self, userpic: Image.Image) -> Image.Image:
+        avatar = userpic.resize((2 * self.userpic_radius, 2 * self.userpic_radius), Image.Resampling.LANCZOS)
         mask = Image.new("L", (8 * self.userpic_radius, 8 * self.userpic_radius), 0)
         ImageDraw.Draw(mask).ellipse((0, 0, 8 * self.userpic_radius, 8 * self.userpic_radius), fill = 255)
-        mask = mask.resize((2 * self.userpic_radius, 2 * self.userpic_radius), Image.LANCZOS)
+        mask = mask.resize((2 * self.userpic_radius, 2 * self.userpic_radius), Image.Resampling.LANCZOS)
         avatar.putalpha(mask)
 
         return avatar
     
-    def smooth_circle(self, radius, color = (0, 0, 0, 255), scale = 4) -> Image:
+    def smooth_circle(self, radius, color = (0, 0, 0, 255), scale = 4) -> Image.Image:
         size = radius * 2
         big_size = size * scale
         img = Image.new("RGBA", (big_size, big_size), (0, 0, 0, 0))
@@ -90,7 +90,7 @@ class Skin:
             (0, 0, big_size - 1, big_size - 1),
             fill=color
         )
-        img = img.resize((size, size), Image.LANCZOS)
+        img = img.resize((size, size), Image.Resampling.LANCZOS)
         
         return img
 
